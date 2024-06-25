@@ -6,7 +6,7 @@ This project predicts credit card consumption using various machine learning alg
 
 - `ccp/src`: Source code for data preprocessing, feature engineering, model training, and evaluation.
 - `ccp/test`: Unit tests for the source code.
-- `data`: Directory for storing datasets.
+- `ccp/data`: Directory for storing datasets.
 - `.gitignore`: Specifies files and directories to be ignored by git.
 - `README.md`: Project description and instructions.
 - `requirements.txt`: List of dependencies required to run the project.
@@ -27,5 +27,3 @@ To run the main script with a configurable prediction window:
 
 ## Tests
 - `pytest ccp/test`
-  With these updates, your project setup now includes a configurable prediction window, 
-    and you can run the main script with different time frames for predictions.
