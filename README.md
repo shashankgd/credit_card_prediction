@@ -11,9 +11,21 @@ This project predicts credit card consumption using various machine learning alg
 - `README.md`: Project description and instructions.
 - `requirements.txt`: List of dependencies required to run the project.
 - `setup.py`: Configuration for packaging the project.
+- `main.py`: Main script to run the data processing and model training pipeline.
 
 ## Installation
 
 ```bash
 pip install -r requirements.txt
 python setup.py install
+```
+
+## Usage
+To run the main script with a configurable prediction window:
+- `python main.py --window week`
+- `Options for --window: day, week, month`
+
+## Tests
+- `pytest ccp/test`
+  With these updates, your project setup now includes a configurable prediction window, 
+    and you can run the main script with different time frames for predictions.

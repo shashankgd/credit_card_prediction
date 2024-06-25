@@ -1,5 +1,3 @@
-
-#### `setup.py`
 from setuptools import setup, find_packages
 
 setup(
@@ -11,11 +9,13 @@ setup(
         'scikit-learn',
         'xgboost',
         'lightgbm',
-        'pytest'
+        'pytest',
+        'matplotlib',
+        'seaborn'
     ],
     entry_points={
         'console_scripts': [
-            # Add console scripts here if needed
+            'run-credit-card-prediction=main:main',
         ],
     },
 )
