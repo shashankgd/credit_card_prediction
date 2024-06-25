@@ -1,47 +1,34 @@
-import pandas as pd
-import argparse
-from ccp.src.data_preprocessing import load_data, preprocess_data
-from ccp.src.feature_engineering import create_features, encode_categorical
-from ccp.src.model_training import train_model
-from ccp.src.model_evaluation import evaluate_model
+import os
+from ccp.src import feature_engineering, data_imputation, data_visualization, edge_cases, statistical_testing, train_model
 
-def main():
-    # Argument parser for configurable prediction window
-    parser = argparse.ArgumentParser(description='Credit Card Consumption Prediction')
-    parser.add_argument('--window', type=str, default='week', choices=['day', 'week', 'month'],
-                        help='Prediction window: day, week, or month')
-    args = parser.parse_args()
-    window = args.window
+if __name__ == "__main__":
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    data_path = os.path.join(base_path, 'ccp/data/synthetic_consumption_data.csv')
+    model_path = os.path.join(base_path, 'ccp/data/best_model.pkl')
+    training_results_path = os.path.join(base_path, 'ccp/data/training_results.png')
+    testing_results_path = os.path.join(base_path, 'ccp/data/testing_results.png')
+    metrics_path = os.path.join(base_path, 'ccp/data/model_performance_metrics.png')
+    visualization_path = os.path.join(base_path, 'ccp/data/transaction_amount_distribution.png')
+    next_week_predictions_path = os.path.join(base_path, 'ccp/data/next_week_predictions.png')
 
-    # Load and preprocess data
-    data_path = 'ccp/data/credit_data.csv'
-    df = load_data(data_path)
-    df = preprocess_data(df)
+    # Perform feature engineering
+    feature_engineering.perform_feature_engineering(data_path)
 
-    # Feature engineering
-    df = create_features(df)
-    df = encode_categorical(df)
+    # Handle data imputation
+    data_imputation.handle_missing_values(data_path)
 
-    # Adjust target based on prediction window
-    target_column = 'cc_cons'
-    if window == 'day':
-        df['target'] = df[target_column].shift(-1)
-    elif window == 'week':
-        df['target'] = df[target_column].shift(-7)
-    elif window == 'month':
-        df['target'] = df[target_column].shift(-30)
+    # Visualize the data
+    data_visualization.visualize_data(data_path, visualization_path)
 
-    df.dropna(subset=['target'], inplace=True)
+    # Handle edge cases
+    edge_cases.handle_edge_cases(data_path)
 
-    # Train model
-    model, X_test, y_test = train_model(df, 'target')
+    # Perform statistical testing
+    statistical_testing.perform_statistical_tests(data_path)
 
-    # Evaluate model
-    rmse, mae = evaluate_model(model, X_test, y_test)
+    # Train and test the model
+    best_model, X_test, y_test = train_model.train_and_test_model(data_path, model_path, training_results_path, testing_results_path, metrics_path)
 
-    # Print evaluation metrics
-    print(f'Root Mean Squared Error: {rmse}')
-    print(f'Mean Absolute Error: {mae}')
-
-if __name__ == '__main__':
-    main()
+    # Predict next week
+    predictions = train_model.predict_next_week(best_model, data_path)
+    data_visualization.visualize_next_week_predictions(predictions, next_week_predictions_path)

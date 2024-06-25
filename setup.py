@@ -1,21 +1,13 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='credit_card_prediction',
+    name='ccp',
     version='0.1',
     packages=find_packages(),
     install_requires=[
         'pandas',
-        'scikit-learn',
-        'xgboost',
-        'lightgbm',
-        'pytest',
+        'numpy',
         'matplotlib',
-        'seaborn'
+        'scikit-learn'
     ],
-    entry_points={
-        'console_scripts': [
-            'run-credit-card-prediction=main:main',
-        ],
-    },
 )

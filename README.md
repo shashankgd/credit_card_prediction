@@ -1,29 +1,20 @@
-# Credit Card Consumption Prediction
+# Consumption Pattern Analysis
 
-This project predicts credit card consumption using various machine learning algorithms.
+This project analyzes credit and debit card consumption patterns and predicts future consumption.
 
-## Directory Structure
+## Structure
 
-- `ccp/src`: Source code for data preprocessing, feature engineering, model training, and evaluation.
-- `ccp/test`: Unit tests for the source code.
-- `ccp/data`: Directory for storing datasets.
-- `.gitignore`: Specifies files and directories to be ignored by git.
-- `README.md`: Project description and instructions.
-- `requirements.txt`: List of dependencies required to run the project.
-- `setup.py`: Configuration for packaging the project.
-- `main.py`: Main script to run the data processing and model training pipeline.
+- **ccp/data**: Contains the synthetic data file.
+- **ccp/src**: Contains the source code for data generation, feature engineering, imputation, visualization, handling edge cases, statistical testing, model training, testing, and backtesting.
+- **ccp/test**: Contains test scripts.
 
-## Installation
+## Setup
 
-```bash
-pip install -r requirements.txt
-python setup.py install
-```
-
-## Usage
-To run the main script with a configurable prediction window:
-- `python main.py --window week`
-- `Options for --window: day, week, month`
-
-## Tests
-- `pytest ccp/test`
+1. Install dependencies:
+    ```
+    pip install -r requirements.txt
+    ```
+2. Run the main script:
+    ```
+    python main.py
+    ```
