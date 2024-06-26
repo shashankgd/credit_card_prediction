@@ -1,36 +1,68 @@
 import pandas as pd
 import numpy as np
 import lightgbm as lgb
-from sklearn.model_selection import train_test_split, RandomizedSearchCV
+from sklearn.model_selection import RandomizedSearchCV
 from sklearn.metrics import mean_squared_error, r2_score
 import matplotlib.pyplot as plt
 import joblib
 import datetime
 
-def train_and_test_model(data_path, model_path, training_results_path, testing_results_path, metrics_path):
+def prepare_data(data_path):
     # Load the data with date parsing
     data = pd.read_csv(data_path, parse_dates=['transaction_date'])
 
-    # Ensure necessary feature engineering
-    if 'day_of_week' not in data.columns:
-        data['day_of_week'] = data['transaction_date'].dt.dayofweek
-    if 'month' not in data.columns:
-        data['month'] = data['transaction_date'].dt.month
+    # Sort by date
+    data.sort_values(by='transaction_date', inplace=True)
 
-    # Check data types
-    print("Data types:\n", data.dtypes)
+    # Set the date as the index
+    data.set_index('transaction_date', inplace=True)
+
+    # Split data
+    train_data = data.iloc[:-14]  # All data except the last two weeks
+    val_data = data.iloc[-14:-7]  # The second to last week
+    test_data = data.iloc[-7:]    # The last week
+
+    return train_data, val_data, test_data
+
+def perform_feature_engineering(data):
+    # Ensure necessary columns
+    if 'day_of_week' not in data.columns:
+        data['day_of_week'] = data.index.dayofweek
+    if 'month' not in data.columns:
+        data['month'] = data.index.month
+
+    # Create lag features
+    data['amount_lag_1'] = data['amount'].shift(1)
+    data['amount_lag_7'] = data['amount'].shift(7)
+
+    # Create rolling mean features
+    data['amount_roll_mean_7'] = data['amount'].rolling(window=7).mean()
+
+    # Create additional features
+    data['transaction_count_last_7_days'] = data['amount'].resample('D').count().rolling(window=7).sum().shift(1)
+    data['transaction_amount_mean_last_7_days'] = data['amount'].resample('D').sum().rolling(window=7).mean().shift(1)
+    data['transaction_amount_std_last_7_days'] = data['amount'].resample('D').sum().rolling(window=7).std().shift(1)
+
+    # Fill missing values
+    data.fillna(0, inplace=True)
+
+    return data
+
+def train_and_test_model(train_data, val_data, model_path, training_results_path, validation_results_path, metrics_path):
+    # Perform feature engineering
+    train_data = perform_feature_engineering(train_data)
+    val_data = perform_feature_engineering(val_data)
 
     # Define features and target
-    X = data.drop(['transaction_id', 'user_id', 'transaction_date', 'amount'], axis=1)
-    y = data['amount']
-
-    # Split the data
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_train = train_data.drop(['transaction_id', 'user_id', 'amount'], axis=1)
+    y_train = train_data['amount']
+    X_val = val_data.drop(['transaction_id', 'user_id', 'amount'], axis=1)
+    y_val = val_data['amount']
 
     # Define the model
     model = lgb.LGBMRegressor()
 
-    # Reduced hyperparameter tuning with RandomizedSearchCV
+    # Hyperparameter tuning with RandomizedSearchCV
     param_dist = {
         'num_leaves': [31, 50, 70, 100],
         'learning_rate': [0.005, 0.003],
@@ -45,23 +77,23 @@ def train_and_test_model(data_path, model_path, training_results_path, testing_r
 
     # Best model
     best_model = random_search.best_estimator_
-    print(best_model)
+
     # Save the model
     joblib.dump(best_model, model_path)
 
-    # Training and testing
+    # Training and validation
     y_train_pred = best_model.predict(X_train)
-    y_test_pred = best_model.predict(X_test)
+    y_val_pred = best_model.predict(X_val)
 
     # Metrics
     mse_train = mean_squared_error(y_train, y_train_pred)
     r2_train = r2_score(y_train, y_train_pred)
-    mse_test = mean_squared_error(y_test, y_test_pred)
-    r2_test = r2_score(y_test, y_test_pred)
+    mse_val = mean_squared_error(y_val, y_val_pred)
+    r2_val = r2_score(y_val, y_val_pred)
 
     # Print metrics
     print(f'Training MSE: {mse_train}, R2: {r2_train}')
-    print(f'Testing MSE: {mse_test}, R2: {r2_test}')
+    print(f'Validation MSE: {mse_val}, R2: {r2_val}')
 
     # Plot training results
     plt.figure(figsize=(10, 5))
@@ -74,20 +106,20 @@ def train_and_test_model(data_path, model_path, training_results_path, testing_r
     plt.savefig(training_results_path)
     plt.close()
 
-    # Plot testing results
+    # Plot validation results
     plt.figure(figsize=(10, 5))
-    plt.plot(y_test.values, label='Actual')
-    plt.plot(y_test_pred, label='Predicted')
-    plt.title('Testing Data: Actual vs Predicted')
+    plt.plot(y_val.values, label='Actual')
+    plt.plot(y_val_pred, label='Predicted')
+    plt.title('Validation Data: Actual vs Predicted')
     plt.xlabel('Samples')
     plt.ylabel('Amount')
     plt.legend()
-    plt.savefig(testing_results_path)
+    plt.savefig(validation_results_path)
     plt.close()
 
     # Plot metrics
     plt.figure(figsize=(10, 5))
-    metrics_data = {'Metric': ['MSE', 'R2'], 'Training': [mse_train, r2_train], 'Testing': [mse_test, r2_test]}
+    metrics_data = {'Metric': ['MSE', 'R2'], 'Training': [mse_train, r2_train], 'Validation': [mse_val, r2_val]}
     metrics_df = pd.DataFrame(metrics_data)
     metrics_df.set_index('Metric', inplace=True)
     metrics_df.plot(kind='bar', title='Model Performance Metrics')
@@ -95,48 +127,43 @@ def train_and_test_model(data_path, model_path, training_results_path, testing_r
     plt.savefig(metrics_path)
     plt.close()
 
-    return best_model, X_test, y_test
+    return best_model
 
-def predict_next_week(model, data_path):
-    # Load the data with date parsing
-    data = pd.read_csv(data_path, parse_dates=['transaction_date'])
+def predict_next_week(model, test_data):
+    # Perform feature engineering
+    test_data = perform_feature_engineering(test_data)
 
-    # Ensure transaction_date is set as index for resampling
-    data.set_index('transaction_date', inplace=True)
+    # Define features
+    X_test = test_data.drop(['transaction_id', 'user_id', 'amount'], axis=1)
 
-    # Predict for the next week
-    last_date = data.index.max()
-    next_week_dates = [last_date + datetime.timedelta(days=i) for i in range(1, 8)]
-    predictions = []
+    # Predict
+    y_test_pred = model.predict(X_test)
 
-    for date in next_week_dates:
-        week_day = date.weekday()
-        month = date.month
-        recent_data = data.tail(1).copy()  # Use the most recent data as a template
-        recent_data['day_of_week'] = week_day
-        recent_data['month'] = month
-        recent_data.index = [date]
-        recent_data['amount'] = 0  # Dummy amount
+    # Extract actual amounts
+    y_test_actual = test_data['amount'].values
 
-        # Feature engineering
-        recent_data['amount_lag_1'] = data['amount'].shift(1).values[-1]
-        recent_data['amount_lag_7'] = data['amount'].shift(7).values[-1]
-        recent_data['amount_roll_mean_7'] = data['amount'].rolling(window=7).mean().values[-1]
-        recent_data['transaction_count_last_7_days'] = data['amount'].resample('D').count().rolling(window=7).sum().shift(1).values[-1]
-        recent_data['transaction_amount_mean_last_7_days'] = data['amount'].resample('D').sum().rolling(window=7).mean().shift(1).values[-1]
-        recent_data['transaction_amount_std_last_7_days'] = data['amount'].resample('D').sum().rolling(window=7).std().shift(1).values[-1]
-        recent_data.fillna(0, inplace=True)
+    predictions = list(zip(X_test.index, y_test_pred))
+    actuals = list(zip(X_test.index, y_test_actual))
 
-        X_next = recent_data.drop(['transaction_id', 'user_id', 'amount'], axis=1)
-        y_next_pred = model.predict(X_next)
-        predictions.append((date, y_next_pred[0]))
+    return predictions, actuals
 
-    # Extract actual amounts for the next week from the data
-    actual_next_week = data.loc[next_week_dates]['amount'].tolist()
-
-    return predictions, actual_next_week
-
-def print_predictions(predictions, actual):
-    print("\nPredictions vs Actual for the next week:")
-    for (date, pred), act in zip(predictions, actual):
+def print_predictions(predictions, actuals):
+    print("\nPredictions vs Actuals for the next week:")
+    for (date, pred), (_, act) in zip(predictions, actuals):
         print(f"Date: {date.date()}, Predicted Amount: {pred:.2f}, Actual Amount: {act:.2f}")
+
+def visualize_next_week_predictions(predictions, actuals, output_path):
+    dates = [pred[0] for pred in predictions]
+    predicted_values = [pred[1] for pred in predictions]
+    actual_values = [act[1] for act in actuals]
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(dates, predicted_values, marker='o', linestyle='-', color='b', label='Predicted')
+    plt.plot(dates, actual_values, marker='x', linestyle='-', color='r', label='Actual')
+    plt.title('Predicted vs Actual Transaction Amounts for the Next Week')
+    plt.xlabel('Date')
+    plt.ylabel('Transaction Amount')
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(output_path)
+    plt.close()
