@@ -130,11 +130,13 @@ def predict_next_week(model, data_path):
         X_next = recent_data.drop(['transaction_id', 'user_id', 'amount'], axis=1)
         y_next_pred = model.predict(X_next)
         predictions.append((date, y_next_pred[0]))
-        print(X_next)
 
-    return predictions
+    # Extract actual amounts for the next week from the data
+    actual_next_week = data.loc[next_week_dates]['amount'].tolist()
 
-def print_predictions(predictions):
-    print("\nPredictions for the next week:")
-    for date, value in predictions:
-        print(f"Date: {date.date()}, Predicted Amount: {value:.2f}")
+    return predictions, actual_next_week
+
+def print_predictions(predictions, actual):
+    print("\nPredictions vs Actual for the next week:")
+    for (date, pred), act in zip(predictions, actual):
+        print(f"Date: {date.date()}, Predicted Amount: {pred:.2f}, Actual Amount: {act:.2f}")

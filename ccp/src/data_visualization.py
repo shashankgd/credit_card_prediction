@@ -16,17 +16,13 @@ def visualize_data(data_path, visualization_path):
     print("Data visualization complete.")
     # plt.clo```````````````se()
 
-def visualize_next_week_predictions(predictions, actual_data_path, output_path):
+def visualize_next_week_predictions(predictions, actual, output_path):
     dates = [pred[0] for pred in predictions]
     predicted_values = [pred[1] for pred in predictions]
 
-    # Load actual data for comparison
-    actual_data = pd.read_csv(actual_data_path, parse_dates=['transaction_date'])
-    actual_values = actual_data[actual_data['transaction_date'].isin(dates)]['amount'].tolist()
-
     plt.figure(figsize=(10, 5))
     plt.plot(dates, predicted_values, marker='o', linestyle='-', color='b', label='Predicted')
-    plt.plot(dates, actual_values, marker='x', linestyle='-', color='r', label='Actual')
+    plt.plot(dates, actual, marker='x', linestyle='-', color='r', label='Actual')
     plt.title('Predicted vs Actual Transaction Amounts for the Next Week')
     plt.xlabel('Date')
     plt.ylabel('Transaction Amount')

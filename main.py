@@ -10,7 +10,6 @@ if __name__ == "__main__":
     metrics_path = os.path.join(base_path, 'ccp', 'data', 'model_performance_metrics.png')
     visualization_path = os.path.join(base_path, 'ccp', 'data', 'transaction_amount_distribution.png')
     next_week_predictions_path = os.path.join(base_path, 'ccp', 'data', 'next_week_predictions.png')
-    actual_data_path = os.path.join(base_path, 'ccp', 'data', 'actual_consumption_data.csv')  # Path to actual data
 
     # Perform feature engineering
     feature_engineering.perform_feature_engineering(data_path)
@@ -30,11 +29,11 @@ if __name__ == "__main__":
     # Train and test the model
     best_model, X_test, y_test = train_model.train_and_test_model(data_path, model_path, training_results_path, testing_results_path, metrics_path)
 
-    # Predict next week
-    predictions = train_model.predict_next_week(best_model, data_path)
+    # Predict next week and get actual values
+    predictions, actual = train_model.predict_next_week(best_model, data_path)
 
     # Visualize next week predictions
-    data_visualization.visualize_next_week_predictions(predictions, actual_data_path, next_week_predictions_path)
+    data_visualization.visualize_next_week_predictions.visualize_next_week_predictions(predictions, actual, next_week_predictions_path)
 
     # Print next week predictions
-    train_model.print_predictions(predictions)
+    train_model.print_predictions(predictions, actual)
