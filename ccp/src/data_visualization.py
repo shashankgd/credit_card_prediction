@@ -14,7 +14,7 @@ def visualize_data(data_path, visualization_path):
     plt.savefig(visualization_path)
     # plt.show()
     print("Data visualization complete.")
-    # plt.close()
+    # plt.clo```````````````se()
 
 def visualize_next_week_predictions(predictions, output_path):
     dates = [pred[0] for pred in predictions]
