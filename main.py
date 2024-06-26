@@ -3,13 +3,14 @@ from ccp.src import feature_engineering, data_imputation, data_visualization, ed
 
 if __name__ == "__main__":
     base_path = os.path.dirname(os.path.abspath(__file__))
-    data_path = os.path.join(base_path, 'ccp/data/synthetic_consumption_data.csv')
-    model_path = os.path.join(base_path, 'ccp/data/best_model.pkl')
-    training_results_path = os.path.join(base_path, 'ccp/data/training_results.png')
-    testing_results_path = os.path.join(base_path, 'ccp/data/testing_results.png')
-    metrics_path = os.path.join(base_path, 'ccp/data/model_performance_metrics.png')
-    visualization_path = os.path.join(base_path, 'ccp/data/transaction_amount_distribution.png')
-    next_week_predictions_path = os.path.join(base_path, 'ccp/data/next_week_predictions.png')
+    data_path = os.path.join(base_path, 'ccp', 'data', 'synthetic_consumption_data.csv')
+    model_path = os.path.join(base_path, 'ccp', 'data', 'best_model.pkl')
+    training_results_path = os.path.join(base_path, 'ccp', 'data', 'training_results.png')
+    testing_results_path = os.path.join(base_path, 'ccp', 'data', 'testing_results.png')
+    metrics_path = os.path.join(base_path, 'ccp', 'data', 'model_performance_metrics.png')
+    visualization_path = os.path.join(base_path, 'ccp', 'data', 'transaction_amount_distribution.png')
+    next_week_predictions_path = os.path.join(base_path, 'ccp', 'data', 'next_week_predictions.png')
+    actual_data_path = os.path.join(base_path, 'ccp', 'data', 'actual_consumption_data.csv')  # Path to actual data
 
     # Perform feature engineering
     feature_engineering.perform_feature_engineering(data_path)
@@ -31,4 +32,9 @@ if __name__ == "__main__":
 
     # Predict next week
     predictions = train_model.predict_next_week(best_model, data_path)
-    data_visualization.visualize_next_week_predictions(predictions, next_week_predictions_path)
+
+    # Visualize next week predictions
+    data_visualization.visualize_next_week_predictions(predictions, actual_data_path, next_week_predictions_path)
+
+    # Print next week predictions
+    train_model.print_predictions(predictions)

@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import lightgbm as lgb
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.metrics import mean_squared_error, r2_score
 import matplotlib.pyplot as plt
 import joblib
@@ -30,22 +30,22 @@ def train_and_test_model(data_path, model_path, training_results_path, testing_r
     # Define the model
     model = lgb.LGBMRegressor()
 
-    # Reduced hyperparameter tuning
-    param_grid = {
-        'num_leaves': [31, 50],
-        'learning_rate': [0.1, 0.01],
-        'n_estimators': [100, 200],
-        'feature_fraction': [0.8, 1.0],
-        'bagging_fraction': [0.8, 1.0],
-        'bagging_freq': [1, 5]
+    # Reduced hyperparameter tuning with RandomizedSearchCV
+    param_dist = {
+        'num_leaves': [31, 50, 70, 100],
+        'learning_rate': [0.005, 0.003],
+        'n_estimators': [500],
+        'feature_fraction': [0.7, 0.8],
+        'bagging_fraction': [0.7, 0.8],
+        'bagging_freq': [0.5, 1]
     }
 
-    grid_search = GridSearchCV(model, param_grid, cv=3, scoring='neg_mean_squared_error', verbose=1, n_jobs=-1)
-    grid_search.fit(X_train, y_train)
+    random_search = RandomizedSearchCV(model, param_distributions=param_dist, n_iter=50, cv=3, scoring='neg_mean_squared_error', verbose=1, n_jobs=-1, random_state=42)
+    random_search.fit(X_train, y_train)
 
     # Best model
-    best_model = grid_search.best_estimator_
-
+    best_model = random_search.best_estimator_
+    print(best_model)
     # Save the model
     joblib.dump(best_model, model_path)
 
@@ -101,8 +101,11 @@ def predict_next_week(model, data_path):
     # Load the data with date parsing
     data = pd.read_csv(data_path, parse_dates=['transaction_date'])
 
+    # Ensure transaction_date is set as index for resampling
+    data.set_index('transaction_date', inplace=True)
+
     # Predict for the next week
-    last_date = data['transaction_date'].max()
+    last_date = data.index.max()
     next_week_dates = [last_date + datetime.timedelta(days=i) for i in range(1, 8)]
     predictions = []
 
@@ -112,7 +115,7 @@ def predict_next_week(model, data_path):
         recent_data = data.tail(1).copy()  # Use the most recent data as a template
         recent_data['day_of_week'] = week_day
         recent_data['month'] = month
-        recent_data['transaction_date'] = date
+        recent_data.index = [date]
         recent_data['amount'] = 0  # Dummy amount
 
         # Feature engineering
@@ -124,8 +127,14 @@ def predict_next_week(model, data_path):
         recent_data['transaction_amount_std_last_7_days'] = data['amount'].resample('D').sum().rolling(window=7).std().shift(1).values[-1]
         recent_data.fillna(0, inplace=True)
 
-        X_next = recent_data.drop(['transaction_id', 'user_id', 'transaction_date', 'amount'], axis=1)
+        X_next = recent_data.drop(['transaction_id', 'user_id', 'amount'], axis=1)
         y_next_pred = model.predict(X_next)
         predictions.append((date, y_next_pred[0]))
+        print(X_next)
 
     return predictions
+
+def print_predictions(predictions):
+    print("\nPredictions for the next week:")
+    for date, value in predictions:
+        print(f"Date: {date.date()}, Predicted Amount: {value:.2f}")
